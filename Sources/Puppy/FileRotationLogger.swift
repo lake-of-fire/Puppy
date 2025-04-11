@@ -16,8 +16,8 @@ public struct FileRotationLogger: FileLoggerable {
     // Buffering properties to throttle file system checks for log rotation
     private var logCallCount: UInt = 0
     private var lastRotationCheck: Date = Date()
-    private let rotationCheckFrequency: UInt = 2000
-    private let rotationCheckInterval: TimeInterval = 60  // Or every N seconds, whichever comes first
+    private let rotationCheckFrequency: UInt = 50_000
+    private let rotationCheckInterval: TimeInterval = 60 * 8  // Or every N seconds, whichever comes first
     
     private var dateFormat: DateFormatter
     
