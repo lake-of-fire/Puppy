@@ -16,7 +16,7 @@ public enum FileWritingErrorHandlingMode: Sendable {
     case force
 }
 
-public protocol FileLoggerable: Loggerable, Sendable {
+public protocol FileLoggerable: Loggerable {//}, Sendable {
     var fileURL: URL { get }
     var filePermission: String { get }
 }

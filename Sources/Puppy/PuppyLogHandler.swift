@@ -2,7 +2,7 @@
 import Foundation
 @_exported import Logging
 
-public struct PuppyLogHandler: LogHandler, Sendable {
+public struct PuppyLogHandler: LogHandler/*, Sendable*/ {
     public var logLevel: Logger.Level = .info
     public var metadata: Logger.Metadata
 

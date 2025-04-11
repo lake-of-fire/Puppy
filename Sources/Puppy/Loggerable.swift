@@ -1,6 +1,6 @@
 import Foundation
 
-public protocol Loggerable: Sendable {
+public protocol Loggerable/*: Sendable*/ {
     var label: String { get }
     var queue: DispatchQueue { get }
     var logLevel: LogLevel { get }

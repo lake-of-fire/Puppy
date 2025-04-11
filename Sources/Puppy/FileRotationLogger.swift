@@ -1,7 +1,11 @@
 @preconcurrency import Dispatch
 import Foundation
+import Combine
+#if os(iOS)
+import UIKit
+#endif
 
-public struct FileRotationLogger: FileLoggerable {
+public class FileRotationLogger: FileLoggerable {
     public let label: String
     public let queue: DispatchQueue
     public let logLevel: LogLevel
@@ -21,6 +25,9 @@ public struct FileRotationLogger: FileLoggerable {
     
     private var dateFormat: DateFormatter
     
+    fileprivate static var isAppInBackground: Bool = false
+    var subscriptions = Set<AnyCancellable>()
+    
     public init(_ label: String, logLevel: LogLevel = .trace, logFormat: LogFormattable? = nil, fileURL: URL, filePermission: String = "640", rotationConfig: RotationConfig, delegate: FileRotationLoggerDelegate? = nil) throws {
         self.label = label
         self.queue = DispatchQueue(label: label)
@@ -39,12 +46,25 @@ public struct FileRotationLogger: FileLoggerable {
         self.rotationConfig = rotationConfig
         self.delegate = delegate
         
+#if os(iOS)
+        NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)
+            .sink { _ in
+                Self.isAppInBackground = true
+            }
+            .store(in: &subscriptions)
+        NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)
+            .sink { _ in
+                Self.isAppInBackground = false
+            }
+            .store(in: &subscriptions)
+#endif
+        
         try validateFileURL(fileURL)
         try validateFilePermission(fileURL, filePermission: filePermission)
         try openFile()
     }
     
-    public mutating func log(_ level: LogLevel, string: String) {
+    public func log(_ level: LogLevel, string: String) {
         rotateFiles()
         append(level, string: string)
         rotateFiles()
@@ -54,14 +74,21 @@ public struct FileRotationLogger: FileLoggerable {
 #if os(Windows)
         return try FileManager.default.windowsFileSize(atPath: fileURL.path)
 #else
-        let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
-        // swiftlint:disable force_cast
-        return attributes[.size] as! UInt64
-        // swiftlint:enable force_cast
+        let resourceValues = try fileURL.resourceValues(forKeys: [.fileSizeKey])
+        guard let size = resourceValues.fileSize else {
+            return 0
+        }
+        return UInt64(size)
 #endif
     }
     
-    private mutating func rotateFiles() {
+    private func rotateFiles() {
+#if os(iOS)
+        if Self.isAppInBackground {
+            puppyDebug("App is in background, skipping file rotation.")
+            return
+        }
+#endif
         // Increment log call counter and calculate elapsed time
         logCallCount += 1
         let elapsed = Date().timeIntervalSince(lastRotationCheck)
