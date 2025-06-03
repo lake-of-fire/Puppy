@@ -68,11 +68,11 @@ public class FileRotationLogger: FileLoggerable {
     }
     
     public func log(_ level: LogLevel, string: String) {
-        rotateFiles()
+        //rotateFiles()
         append(level, string: string, flushMode: .manual)
-        rotateFiles()
         unsyncedWrites += 1
         flushIfNeeded()
+        rotateFiles()
     }
     
     private func flushIfNeeded(bypassThresholdCheck: Bool = false) {
