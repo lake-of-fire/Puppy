@@ -22,6 +22,8 @@ public class FileRotationLogger: FileLoggerable {
     private var lastRotationCheck: Date = Date()
     private let rotationCheckFrequency: UInt = 50_000
     private let rotationCheckInterval: TimeInterval = 60 * 8  // Or every N seconds, whichever comes first
+    private var unsyncedWrites: UInt = 0
+    private let flushThreshold: UInt = 200
     
     private var dateFormat: DateFormatter
     
@@ -48,8 +50,9 @@ public class FileRotationLogger: FileLoggerable {
         
 #if os(iOS)
         NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)
-            .sink { _ in
+            .sink { [weak self] _ in
                 Self.isAppInBackground = true
+                self?.flushIfNeeded(bypassThresholdCheck: true)
             }
             .store(in: &subscriptions)
         NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)
@@ -66,8 +69,17 @@ public class FileRotationLogger: FileLoggerable {
     
     public func log(_ level: LogLevel, string: String) {
         rotateFiles()
-        append(level, string: string)
+        append(level, string: string, flushMode: .manual)
         rotateFiles()
+        unsyncedWrites += 1
+        flushIfNeeded()
+    }
+    
+    private func flushIfNeeded(bypassThresholdCheck: Bool = false) {
+        if (bypassThresholdCheck && unsyncedWrites > 0) || unsyncedWrites >= flushThreshold {
+            flush(fileURL)
+            unsyncedWrites = 0
+        }
     }
     
     private func fileSize(_ fileURL: URL) throws -> UInt64 {
@@ -96,6 +108,8 @@ public class FileRotationLogger: FileLoggerable {
         // Only perform file system check if either threshold is met
         guard logCallCount == 0 || logCallCount >= rotationCheckFrequency || elapsed >= rotationCheckInterval else { return }
         
+        flushIfNeeded(bypassThresholdCheck: true)
+
         // Reset the buffered counters
         logCallCount = 0
         lastRotationCheck = Date()
