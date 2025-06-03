@@ -108,8 +108,6 @@ public class FileRotationLogger: FileLoggerable {
         // Only perform file system check if either threshold is met
         guard logCallCount == 0 || logCallCount >= rotationCheckFrequency || elapsed >= rotationCheckInterval else { return }
         
-        flushIfNeeded(bypassThresholdCheck: true)
-
         // Reset the buffered counters
         logCallCount = 0
         lastRotationCheck = Date()
