@@ -48,6 +48,9 @@ public class FileRotationLogger: FileLoggerable {
         self.rotationConfig = rotationConfig
         self.delegate = delegate
         
+        // Mark this queue with the specific key so reentrant sync is detected
+        self.queue.setSpecific(key: fileLoggerSpecificKey, value: ())
+        
 #if os(iOS)
         NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)
             .sink { [weak self] _ in
