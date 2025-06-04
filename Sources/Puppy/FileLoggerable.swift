@@ -1,4 +1,4 @@
-private let fileLoggerSpecificKey = DispatchSpecificKey<Void>()
+internal let fileLoggerSpecificKey = DispatchSpecificKey<Void>()
 
 import Foundation
 
